@@ -9,7 +9,7 @@ Keyer 插件和脚本商店索引仓库
 ### Issue 规范
 
 - **Label**: 只能从 `extension` 和 `script` 选择（自动添加）
-- **内容格式**: `repo:owner/repository`
+- **Repository URL**: 例如: `https://github.com/keyer-orz/store`
 
 ### 自动化流程
 
@@ -55,3 +55,28 @@ store/
     ├── ISSUE_TEMPLATE/
     └── workflows/
 ```
+
+
+提交 issue 后触发 action
+读取 Repository URL 
+读取 Label
+
+如果 Label 是 extension
+   读取 Repository URL 对应的最新的 tag 对应的 package.json
+   将 json 中的 
+   ```
+   {
+      ...
+      "icon": "🚀",
+      "name": "app-launcher",
+      "title": "App Launcher",
+      "desc": "Launch macOS applications",
+      "version": "1.0.0"
+   }
+   ``` 
+   读取出来，追加 repo 字段为 Repository URL，组成新的字典
+   将该字典添加到 本项目的根目录的 app.json 文件中（注意 name 不能重复）
+   提交代码
+   关闭 issue
+如果 Label 是 script
+   // 暂时不处理

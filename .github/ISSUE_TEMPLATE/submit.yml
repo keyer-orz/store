@@ -25,8 +25,8 @@ body:
     id: repo
     attributes:
       label: Repository URL
-      description: "Provide the GitHub repository URL (format: repo:owner/repository)"
-      placeholder: "repo:username/repo-name"
+      description: "Provide the GitHub repository URL"
+      placeholder: "https://github.com/username/repo-name"
     validations:
       required: true
 
@@ -35,6 +35,10 @@ body:
       value: |
         ---
 
-        **Format**: The repository URL must follow the format `repo:owner/repository`
+        **Supported formats**:
+        - `https://github.com/owner/repository`
+        - `owner/repository`
 
-        **Example**: `repo:keyer/clipboard-history`
+        **Example**: `https://github.com/keyer/clipboard-history`
+
+        **Note for Extensions**: Make sure your repository has at least one release tag. The workflow will fetch the package.json from the latest tag.
