@@ -1,0 +1,40 @@
+name: Submit Extension or Script
+description: Submit an extension or script to the Keyer store
+title: "[Submission] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Submit to Keyer Store
+
+        Please submit your extension or script by providing the repository URL.
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type
+      description: Select the type of submission
+      options:
+        - extension
+        - script
+    validations:
+      required: true
+
+  - type: input
+    id: repo
+    attributes:
+      label: Repository URL
+      description: "Provide the GitHub repository URL (format: repo:owner/repository)"
+      placeholder: "repo:username/repo-name"
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+
+        **Format**: The repository URL must follow the format `repo:owner/repository`
+
+        **Example**: `repo:keyer/clipboard-history`
