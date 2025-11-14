@@ -11,7 +11,7 @@ permissions:
 jobs:
   process-submission:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'extension') || contains(github.event.issue.labels.*.name, 'script')
+    if: contains(github.event.issue.labels.*.name, 'extension')
 
     steps:
       - name: Checkout repository
@@ -67,32 +67,7 @@ jobs:
             console.log(`URL: ${url}`);
             console.log(`Owner: ${owner}`);
             console.log(`Repo: ${repo}`);
-
-      - name: Skip script processing
-        id: check-type
-        if: steps.parse.outputs.type == 'script'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            // Comment on issue
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `⏸️ **Script Processing Temporarily Disabled**\n\nScript submissions are currently not being processed automatically.\n\nPlease check back later for updates.`
-            });
-
-            // Close issue
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed',
-              labels: ['pending', 'script']
-            });
-
-            core.setFailed('Script processing is temporarily disabled');
-
+      
       - name: Fetch latest tag
         id: get-tag
         if: steps.parse.outputs.type == 'extension'

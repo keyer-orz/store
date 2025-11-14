@@ -37,8 +37,5 @@ body:
 
         **Supported formats**:
         - `https://github.com/owner/repository`
-        - `owner/repository`
-
-        **Example**: `https://github.com/keyer/clipboard-history`
 
         **Note for Extensions**: Make sure your repository has at least one release tag. The workflow will fetch the package.json from the latest tag.
