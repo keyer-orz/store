@@ -1,0 +1,216 @@
+name: Process Submission
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: write
+
+jobs:
+  process-submission:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'extension') || contains(github.event.issue.labels.*.name, 'script')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse issue body
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueBody = context.payload.issue.body;
+            const labels = context.payload.issue.labels.map(l => l.name);
+
+            // Parse the issue form response
+            const typeMatch = issueBody.match(/### Type\s*\n\s*([^\n]+)/);
+            const repoMatch = issueBody.match(/### Repository URL\s*\n\s*repo:([^\n\s]+)/);
+
+            if (!typeMatch || !repoMatch) {
+              core.setFailed('Invalid issue format');
+              return;
+            }
+
+            const type = typeMatch[1].trim();
+            const repo = repoMatch[1].trim();
+
+            core.setOutput('type', type);
+            core.setOutput('repo', repo);
+
+            console.log(`Type: ${type}`);
+            console.log(`Repo: ${repo}`);
+
+      - name: Fetch package.json from repository
+        id: fetch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const repo = '${{ steps.parse.outputs.repo }}';
+            const type = '${{ steps.parse.outputs.type }}';
+            const [owner, repoName] = repo.split('/');
+
+            try {
+              // Fetch package.json from the target repository
+              const { data } = await github.rest.repos.getContent({
+                owner: owner,
+                repo: repoName,
+                path: 'package.json'
+              });
+
+              const content = Buffer.from(data.content, 'base64').toString('utf-8');
+              const packageJson = JSON.parse(content);
+
+              // Extract required fields
+              const appData = {
+                icon: packageJson.icon,
+                name: packageJson.name,
+                title: packageJson.title,
+                desc: packageJson.desc,
+                version: packageJson.version,
+                repo: `repo:${repo}`
+              };
+
+              // Validate required fields
+              if (!appData.icon || !appData.name || !appData.title || !appData.desc || !appData.version) {
+                core.setFailed('Missing required fields in package.json (icon, name, title, desc, version)');
+                return;
+              }
+
+              core.setOutput('app-data', JSON.stringify(appData));
+              console.log('App data:', JSON.stringify(appData, null, 2));
+
+              // For scripts, also fetch the main script file
+              if (type === 'script') {
+                const mainFile = packageJson.main || 'index.sh';
+                try {
+                  const { data: scriptData } = await github.rest.repos.getContent({
+                    owner: owner,
+                    repo: repoName,
+                    path: mainFile
+                  });
+                  const scriptContent = Buffer.from(scriptData.content, 'base64').toString('utf-8');
+                  core.setOutput('script-content', scriptContent);
+                  core.setOutput('script-filename', mainFile);
+                  console.log(`Fetched script file: ${mainFile}`);
+                } catch (error) {
+                  core.setFailed(`Failed to fetch script file ${mainFile}: ${error.message}`);
+                }
+              }
+
+            } catch (error) {
+              core.setFailed(`Failed to fetch package.json: ${error.message}`);
+            }
+
+      - name: Update app.json and save script
+        id: update
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const appDataStr = '${{ steps.fetch.outputs.app-data }}';
+            const appData = JSON.parse(appDataStr);
+            const type = '${{ steps.parse.outputs.type }}';
+
+            // Read current app.json
+            let apps = {};
+            try {
+              const content = fs.readFileSync('app.json', 'utf-8');
+              apps = JSON.parse(content);
+            } catch (error) {
+              console.log('app.json is empty or invalid, starting fresh');
+            }
+
+            // Check for duplicate name
+            if (apps[appData.name]) {
+              core.setFailed(`Extension/script with name "${appData.name}" already exists`);
+
+              // Comment on issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `❌ **Submission Failed**\n\nAn extension/script with the name \`${appData.name}\` already exists in the store.\n\nPlease choose a different name and resubmit.`
+              });
+
+              // Close issue with label
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                state: 'closed',
+                labels: ['duplicate', type]
+              });
+
+              return;
+            }
+
+            // Add new entry
+            apps[appData.name] = appData;
+
+            // Write back to app.json
+            fs.writeFileSync('app.json', JSON.stringify(apps, null, 2) + '\n');
+
+            // For scripts, save the script file
+            if (type === 'script') {
+              const scriptContent = `${{ steps.fetch.outputs.script-content }}`;
+              const scriptFilename = '${{ steps.fetch.outputs.script-filename }}';
+
+              // Create scripts directory if it doesn't exist
+              const scriptsDir = 'scripts';
+              if (!fs.existsSync(scriptsDir)) {
+                fs.mkdirSync(scriptsDir, { recursive: true });
+              }
+
+              // Get file extension from original filename
+              const ext = path.extname(scriptFilename);
+              const scriptPath = path.join(scriptsDir, `${appData.name}${ext}`);
+
+              fs.writeFileSync(scriptPath, scriptContent);
+              console.log(`Saved script to: ${scriptPath}`);
+
+              core.setOutput('script-path', scriptPath);
+            }
+
+            core.setOutput('success', 'true');
+            core.setOutput('app-name', appData.name);
+
+      - name: Commit changes
+        if: steps.update.outputs.success == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add app.json
+          if [ "${{ steps.parse.outputs.type }}" = "script" ]; then
+            git add scripts/
+          fi
+          git commit -m "Add ${{ steps.parse.outputs.type }}: ${{ steps.update.outputs.app-name }}" -m "Closes #${{ github.event.issue.number }}"
+          git push
+
+      - name: Close issue with success comment
+        if: steps.update.outputs.success == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const appName = '${{ steps.update.outputs.app-name }}';
+            const type = '${{ steps.parse.outputs.type }}';
+
+            // Comment on issue
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `✅ **Submission Successful**\n\nYour ${type} \`${appName}\` has been added to the Keyer store!\n\nThank you for your contribution! 🎉`
+            });
+
+            // Close issue
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+              labels: ['completed', type]
+            });
