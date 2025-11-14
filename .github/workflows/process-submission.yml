@@ -11,8 +11,6 @@ permissions:
 jobs:
   process-submission:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'extension')
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
