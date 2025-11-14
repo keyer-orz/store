@@ -1,1 +1,10 @@
-{}
+{
+  "window-manager": {
+    "icon": "😄",
+    "name": "window-manager",
+    "title": "System Preferences",
+    "desc": "Open macOS System Preferences",
+    "version": "1.0.0",
+    "repo": "https://github.com/MilkerLiu/window-manager"
+  }
+}
