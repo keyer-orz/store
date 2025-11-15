@@ -1,82 +1,32 @@
-## Store
+# Keyer Store
 
-Keyer 插件和脚本商店索引仓库
+本仓库用于管理 Keyer 平台的扩展应用提交与审核流程。
 
-### 提交方式
+## 目录结构
 
-通过提交 GitHub Issue 来添加 extension 或 script
+- `app.json`：扩展应用的元数据存储，所有已收录的扩展信息均在此文件维护。
 
-### Issue 规范
+## 扩展提交流程
 
-- **Label**: 只能从 `extension` 和 `script` 选择（自动添加）
-- **Repository URL**: 例如: `https://github.com/keyer-orz/store`
+1. 在本仓库创建 Issue，按照模板填写扩展信息（类型、仓库地址等）。
+2. 工作流自动解析 Issue 内容，校验仓库地址和扩展元数据。
+3. 若通过校验，自动将扩展信息写入 `app.json`，并自动提交、评论和关闭 Issue。
+4. 若校验失败（如扩展名重复、元数据缺失等），自动评论并关闭 Issue。
 
-### 自动化流程
+## 元数据要求
 
-当提交 issue 后，GitHub Actions 会自动：
+扩展仓库的 `package.json` 必须包含以下字段：
+- `icon`：扩展图标 URL
+- `name`：扩展英文名（唯一）
+- `title`：扩展中文名
+- `desc`：扩展简介
+- `version`：版本号
 
-1. 读取目标仓库的 `package.json`，提取以下字段：
-   ```json
-   {
-     "icon": "🚀",
-     "name": "app-launcher",
-     "title": "App Launcher",
-     "desc": "Launch macOS applications",
-     "version": "1.0.0"
-   }
-   ```
+## 贡献与维护
 
-2. **Extension 处理**:
-   - 追加信息到 `app.json`
-   - 创建提交
-   - 关闭 issue
+- 请确保扩展仓库已创建 release tag。
+- 如需修改审核流程或脚本，请提交 PR 并详细说明。
 
-3. **Script 处理**:
-   - 追加信息到 `app.json`
-   - 下载脚本文件到 `scripts/` 目录
-   - 文件命名: `{name}{extension}` (如 `finder-to-terminal.sh`)
-   - 创建提交
-   - 关闭 issue
+## 联系与反馈
 
-### 重复检查
-
-- `name` 不允许重复
-- 如果已存在同名项，issue 会被标记为 `duplicate` 并关闭
-
-### 目录结构
-
-```
-store/
-├── app.json          # 所有 extension 和 script 的索引
-├── scripts/          # 存储所有提交的脚本文件
-│   ├── README.md
-│   └── *.sh|.js|.py  # 脚本文件
-└── .github/
-    ├── ISSUE_TEMPLATE/
-    └── workflows/
-```
-
-
-提交 issue 后触发 action
-读取 Repository URL 
-读取 Label
-
-如果 Label 是 extension
-   读取 Repository URL 对应的最新的 tag 对应的 package.json
-   将 json 中的 
-   ```
-   {
-      ...
-      "icon": "🚀",
-      "name": "app-launcher",
-      "title": "App Launcher",
-      "desc": "Launch macOS applications",
-      "version": "1.0.0"
-   }
-   ``` 
-   读取出来，追加 repo 字段为 Repository URL，组成新的字典
-   将该字典添加到 本项目的根目录的 app.json 文件中（注意 name 不能重复）
-   提交代码
-   关闭 issue
-如果 Label 是 script
-   // 暂时不处理
+如有问题或建议，请通过 Issue 反馈。
