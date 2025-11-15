@@ -148,51 +148,57 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-            const appDataStr = '${{ steps.fetch.outputs.app-data }}';
-            const appData = JSON.parse(appDataStr);
+              const fs = require('fs');
+              const appDataStr = '${{ steps.fetch.outputs.app-data }}';
+              const appData = JSON.parse(appDataStr);
 
-            // Read current app.json
-            let apps = {};
-            try {
-              const content = fs.readFileSync('app.json', 'utf-8');
-              apps = JSON.parse(content);
-            } catch (error) {
-              console.log('app.json is empty or invalid, starting fresh');
-            }
+              // Read current app.json
+              let apps = {};
+              try {
+                const content = fs.readFileSync('app.json', 'utf-8');
+                apps = JSON.parse(content);
+              } catch (error) {
+                console.log('app.json is empty or invalid, starting fresh');
+              }
 
-            // Check for duplicate name
-            if (apps[appData.name]) {
-              core.setFailed(`Extension with name "${appData.name}" already exists`);
+              // 检查是否存在同名扩展
+              if (apps[appData.name]) {
+                const oldVersion = apps[appData.name].version;
+                if (oldVersion === appData.version) {
+                  core.setFailed(`Extension with name "${appData.name}" and version "${appData.version}" already exists`);
 
-              // Comment on issue
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: `❌ **Submission Failed**\n\nAn extension with the name \`${appData.name}\` already exists in the store.\n\nPlease choose a different name and resubmit.`
-              });
+                  // Comment on issue
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    body: `❌ **Submission Failed**\n\nAn extension with the name \`${appData.name}\` and version \`${appData.version}\` already exists in the store.\n\nPlease update your version and resubmit.`
+                  });
 
-              // Close issue with label
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                state: 'closed',
-                labels: ['duplicate', 'extension']
-              });
+                  // Close issue with label
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    state: 'closed',
+                    labels: ['duplicate', 'extension']
+                  });
 
-              return;
-            }
+                  return;
+                } else {
+                  // 版本不同则更新
+                  apps[appData.name] = appData;
+                }
+              } else {
+                // 不存在则新增
+                apps[appData.name] = appData;
+              }
 
-            // Add new entry
-            apps[appData.name] = appData;
+              // Write back to app.json
+              fs.writeFileSync('app.json', JSON.stringify(apps, null, 2) + '\n');
 
-            // Write back to app.json
-            fs.writeFileSync('app.json', JSON.stringify(apps, null, 2) + '\n');
-
-            core.setOutput('success', 'true');
-            core.setOutput('app-name', appData.name);
+              core.setOutput('success', 'true');
+              core.setOutput('app-name', appData.name);
 
       - name: Commit changes
         if: steps.update.outputs.success == 'true'
