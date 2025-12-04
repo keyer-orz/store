@@ -1,0 +1,10 @@
+{
+	"compatibility_date": "2025-10-08",
+	"main": "search.js",
+	"name": "keyer-store",
+	"upload_source_maps": true,
+	"observability": {
+		"enabled": true
+	}
+}
+	 

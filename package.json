@@ -1,0 +1,25 @@
+{
+	"name": "keyer-store",
+	"description": "Keyer Store backend service.",
+	"cloudflare": {
+		"label": "Backend OpenAPI",
+		"products": [
+			"Workers"
+		],
+		"categories": [
+			"storage"
+		],
+		"publish": true
+	},
+	"dependencies": {
+	},
+	"devDependencies": {
+		"@types/node": "24.10.1",
+		"typescript": "5.9.3",
+		"wrangler": "4.51.0"
+	},
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy"
+	}
+}
