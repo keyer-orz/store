@@ -6,5 +6,13 @@
     "desc": "Open macOS System Preferences",
     "version": "1.0.0",
     "repo": "https://github.com/MilkerLiu/window-manager"
+  },
+  "calculator": {
+    "icon": "🔢",
+    "name": "calculator",
+    "title": "Calculator",
+    "desc": "Calculator extension with preview support",
+    "version": "1.0.0",
+    "repo": "https://github.com/keyer-orz/calculator"
   }
 }
